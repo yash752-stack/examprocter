@@ -153,6 +153,17 @@ def _format_rate(value: float | None) -> str:
     return "Not reviewed" if value is None else f"{value:.1f}%"
 
 
+def _humanize_event_type(event_type: str) -> str:
+    return event_type.replace("_", " ").title()
+
+
+def _asset_url(file_url: str) -> str:
+    base_url = st.session_state.api_base_url.rstrip("/")
+    if file_url.startswith("http://") or file_url.startswith("https://"):
+        return file_url
+    return f"{base_url}{file_url}"
+
+
 def _logout() -> None:
     st.session_state.auth_token = None
     st.session_state.current_user = None
@@ -484,7 +495,7 @@ def main() -> None:
                     [
                         {
                             "Time": row["created_at"],
-                            "Type": row["event_type"],
+                            "Type": _humanize_event_type(row["event_type"]),
                             "Source": row["source"],
                             "Severity": row["severity"],
                             "Points": row["points"],
@@ -498,6 +509,28 @@ def main() -> None:
                 st.dataframe(timeline_df, use_container_width=True, hide_index=True)
             else:
                 st.info("No suspicious activity has been logged for this session yet.")
+
+            evidence = _api_request("GET", f"/api/v1/dashboard/sessions/{selected_id}/evidence")
+            evidence_items = evidence.get("items", [])
+            st.subheader("Evidence gallery")
+            if evidence_items:
+                gallery_columns = st.columns(3)
+                for index, item in enumerate(evidence_items):
+                    column = gallery_columns[index % 3]
+                    with column:
+                        st.image(
+                            _asset_url(item["file_url"]),
+                            caption=(
+                                f"{item['label']} | {item['created_at']}\n"
+                                f"{item['note'] or 'Captured automatically during reviewable event.'}"
+                            ),
+                            use_container_width=True,
+                        )
+                        metadata = item.get("metadata", {})
+                        if metadata:
+                            st.caption(", ".join(f"{key}: {value}" for key, value in metadata.items()))
+            else:
+                st.info("No evidence snapshots captured for this session yet.")
         else:
             st.info("No sessions yet. Create an exam or seed demo data to populate the operations view.")
 

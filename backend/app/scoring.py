@@ -4,9 +4,15 @@ from collections import Counter
 
 EVENT_WEIGHTS = {
     "looking_away": 10,
+    "looking_left": 12,
+    "looking_right": 12,
+    "looking_down": 14,
+    "looking_up": 12,
+    "looking_away_long_duration": 24,
     "multiple_faces": 50,
     "tab_switch": 30,
     "window_blur": 20,
+    "fullscreen_exit": 30,
     "copy": 12,
     "paste": 18,
     "copy_paste": 25,
@@ -14,14 +20,22 @@ EVENT_WEIGHTS = {
     "phone_detected": 70,
     "suspicious_motion": 18,
     "no_face_detected": 22,
+    "no_face_long_duration": 35,
     "webcam_offline": 35,
+    "face_identity_mismatch": 65,
 }
 
 SEVERITY_BY_EVENT = {
     "looking_away": "low",
+    "looking_left": "low",
+    "looking_right": "low",
+    "looking_down": "medium",
+    "looking_up": "low",
+    "looking_away_long_duration": "medium",
     "multiple_faces": "high",
     "tab_switch": "medium",
     "window_blur": "medium",
+    "fullscreen_exit": "high",
     "copy": "low",
     "paste": "medium",
     "copy_paste": "medium",
@@ -29,7 +43,9 @@ SEVERITY_BY_EVENT = {
     "phone_detected": "high",
     "suspicious_motion": "medium",
     "no_face_detected": "medium",
+    "no_face_long_duration": "high",
     "webcam_offline": "high",
+    "face_identity_mismatch": "high",
 }
 
 
@@ -40,17 +56,27 @@ def points_for_event(event_type: str, details: dict | None = None) -> int:
     if event_type == "multiple_faces":
         extra_faces = max(int(payload.get("face_count", 2)) - 2, 0)
         points += min(extra_faces * 10, 30)
-    elif event_type == "looking_away":
+    elif event_type in {"looking_away", "looking_left", "looking_right", "looking_down", "looking_up"}:
         attention_score = float(payload.get("attention_score", 0.4))
         if attention_score < 0.25:
             points += 8
+    elif event_type == "looking_away_long_duration":
+        streak_frames = int(payload.get("streak_frames", 3))
+        points += min(max(streak_frames - 3, 0) * 3, 12)
     elif event_type == "suspicious_motion":
         motion_score = float(payload.get("motion_score", 0))
         if motion_score > 35:
             points += 8
+    elif event_type == "no_face_long_duration":
+        streak_frames = int(payload.get("streak_frames", 2))
+        points += min(max(streak_frames - 2, 0) * 4, 12)
     elif event_type == "tab_switch":
         hidden_seconds = float(payload.get("hidden_seconds", 0))
         if hidden_seconds > 3:
+            points += 10
+    elif event_type == "fullscreen_exit":
+        hidden_seconds = float(payload.get("hidden_seconds", 0))
+        if hidden_seconds > 2:
             points += 10
 
     return points

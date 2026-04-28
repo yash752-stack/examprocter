@@ -123,6 +123,12 @@ class ExamSession(Base):
         cascade="all, delete-orphan",
         order_by="IntegrityEvent.created_at",
     )
+    evidence_items: Mapped[list["EvidenceSnapshot"]] = relationship(
+        "EvidenceSnapshot",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="EvidenceSnapshot.created_at",
+    )
     snapshots: Mapped[list["RiskSnapshot"]] = relationship(
         "RiskSnapshot",
         back_populates="session",
@@ -146,6 +152,30 @@ class IntegrityEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     session: Mapped[ExamSession] = relationship("ExamSession", back_populates="events")
+    evidence_items: Mapped[list["EvidenceSnapshot"]] = relationship(
+        "EvidenceSnapshot",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        order_by="EvidenceSnapshot.created_at",
+    )
+
+
+class EvidenceSnapshot(Base):
+    __tablename__ = "evidence_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(ForeignKey("exam_sessions.id"), index=True, nullable=False)
+    event_id: Mapped[int | None] = mapped_column(ForeignKey("integrity_events.id"), nullable=True)
+    event_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    label: Mapped[str] = mapped_column(String(128), nullable=False)
+    note: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    session: Mapped[ExamSession] = relationship("ExamSession", back_populates="evidence_items")
+    event: Mapped[IntegrityEvent | None] = relationship("IntegrityEvent", back_populates="evidence_items")
 
 
 class RiskSnapshot(Base):

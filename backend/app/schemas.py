@@ -75,6 +75,7 @@ class EventIngest(BaseModel):
     severity: str | None = None
     points: int | None = None
     details: dict[str, Any] = Field(default_factory=dict)
+    image_base64: str | None = None
 
 
 class FrameIngest(BaseModel):
@@ -96,6 +97,18 @@ class IntegrityEventResponse(BaseModel):
     risk_after_event: int
     is_evidence: bool
     details: dict[str, Any]
+    created_at: datetime
+
+
+class EvidenceSnapshotResponse(BaseModel):
+    id: int
+    session_id: str
+    event_id: int | None
+    event_type: str
+    label: str
+    note: str
+    file_url: str
+    metadata: dict[str, Any]
     created_at: datetime
 
 
@@ -154,6 +167,11 @@ class DashboardOverview(BaseModel):
 class TimelineResponse(BaseModel):
     session_id: str
     events: list[IntegrityEventResponse]
+
+
+class EvidenceGalleryResponse(BaseModel):
+    session_id: str
+    items: list[EvidenceSnapshotResponse]
 
 
 class RiskTrendPoint(BaseModel):

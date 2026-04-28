@@ -374,6 +374,7 @@
           <div class="pill">Risk level: <span id="riskLevel">LOW</span></div>
           <div class="pill">Current action: <span id="currentAction">ignore</span></div>
           <div class="pill">Face count: <span id="faceCount">0</span></div>
+          <div class="pill">Attention direction: <span id="attentionDirection">center</span></div>
           <div class="pill">Attention score: <span id="attentionScore">0.00</span></div>
           <div class="pill">Motion score: <span id="motionScore">0.00</span></div>
         </div>
@@ -403,6 +404,7 @@
     const riskLevel = document.getElementById("riskLevel");
     const currentAction = document.getElementById("currentAction");
     const faceCountLabel = document.getElementById("faceCount");
+    const attentionDirectionLabel = document.getElementById("attentionDirection");
     const attentionScoreLabel = document.getElementById("attentionScore");
     const motionScoreLabel = document.getElementById("motionScore");
     const rulePills = document.getElementById("rulePills");
@@ -506,6 +508,7 @@
         return;
       }
       faceCountLabel.textContent = analysis.face_count ?? 0;
+      attentionDirectionLabel.textContent = analysis.attention_direction ?? "center";
       attentionScoreLabel.textContent = (analysis.attention_score ?? 0).toFixed(2);
       motionScoreLabel.textContent = (analysis.motion_score ?? 0).toFixed(2);
       if (analysis.signals && analysis.signals.length) {
@@ -530,14 +533,25 @@
       return sessionToken ? { "X-Session-Token": sessionToken } : {};
     }
 
-    async function sendEvent(eventType, details = {}, source = "browser") {
+    function captureCurrentFrameData() {
+      if (!mediaStream || !videoPreview.videoWidth) {
+        return null;
+      }
+      const context = captureCanvas.getContext("2d");
+      captureCanvas.width = videoPreview.videoWidth;
+      captureCanvas.height = videoPreview.videoHeight;
+      context.drawImage(videoPreview, 0, 0, captureCanvas.width, captureCanvas.height);
+      return captureCanvas.toDataURL("image/jpeg", 0.76);
+    }
+
+    async function sendEvent(eventType, details = {}, source = "browser", imageBase64 = null) {
       if (!activeSessionId) {
         return;
       }
       const response = await api(
         `/api/v1/public/sessions/${activeSessionId}/events`,
         "POST",
-        { event_type: eventType, source, details },
+        { event_type: eventType, source, details, image_base64: imageBase64 },
         sessionHeaders()
       );
       updateRiskState(response.session);
@@ -556,11 +570,7 @@
       if (!activeSessionId || !mediaStream || !videoPreview.videoWidth) {
         return;
       }
-      const context = captureCanvas.getContext("2d");
-      captureCanvas.width = videoPreview.videoWidth;
-      captureCanvas.height = videoPreview.videoHeight;
-      context.drawImage(videoPreview, 0, 0, captureCanvas.width, captureCanvas.height);
-      const imageBase64 = captureCanvas.toDataURL("image/jpeg", 0.76);
+      const imageBase64 = captureCurrentFrameData();
       const response = await api(
         `/api/v1/public/sessions/${activeSessionId}/frames`,
         "POST",
@@ -654,7 +664,7 @@
 
       document.addEventListener("fullscreenchange", async () => {
         if (activeSessionId && activeExam && activeExam.fullscreen_required && !document.fullscreenElement) {
-          await sendEvent("window_blur", { note: "fullscreen exited during protected exam" });
+          await sendEvent("fullscreen_exit", { note: "fullscreen exited during protected exam" });
         }
       });
 
@@ -747,7 +757,12 @@
     });
 
     phoneButton.addEventListener("click", () => {
-      sendEvent("phone_detected", { note: "Demo control for future YOLO hook" }, "manual")
+      sendEvent(
+        "phone_detected",
+        { note: "Demo control for future YOLO hook" },
+        "manual",
+        captureCurrentFrameData()
+      )
         .catch((error) => showAlert(error.message, true));
     });
 

@@ -9,12 +9,21 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .auth import hash_password, issue_auth_token, issue_session_token, verify_password
-from .models import Exam, ExamSession, IntegrityEvent, RiskSnapshot, User
+from .evidence import save_evidence_image
+from .models import EvidenceSnapshot, Exam, ExamSession, IntegrityEvent, RiskSnapshot, User
 from .scoring import compute_risk_level, generate_summary, points_for_event, severity_for_event
 
 RISK_DECAY_POINTS = 5
 RISK_DECAY_WINDOW_MINUTES = 5
 TERMINATION_SCORE = 120
+EVIDENCE_EVENT_TYPES = {
+    "multiple_faces",
+    "no_face_detected",
+    "no_face_long_duration",
+    "phone_detected",
+    "looking_away_long_duration",
+    "face_identity_mismatch",
+}
 
 
 def serialize_allowed_tabs(exam: Exam) -> list[str]:
@@ -162,6 +171,10 @@ def bootstrap_platform(db: Session) -> None:
         )
 
 
+def humanize_event_type(event_type: str) -> str:
+    return event_type.replace("_", " ").title()
+
+
 def _record_snapshot(
     db: Session,
     session: ExamSession,
@@ -199,6 +212,47 @@ def _refresh_summary(db: Session, session: ExamSession) -> None:
         risk_level=session.risk_level,
         events=_recent_events(db, session.id),
     )
+
+
+def create_evidence_snapshot(
+    db: Session,
+    *,
+    session: ExamSession,
+    event: IntegrityEvent | None,
+    event_type: str,
+    image_base64: str,
+    captured_at: datetime,
+    note: str = "",
+    metadata: dict | None = None,
+) -> EvidenceSnapshot:
+    file_name, file_url = save_evidence_image(
+        session_id=session.id,
+        event_type=event_type,
+        image_base64=image_base64,
+        captured_at=captured_at,
+    )
+    evidence_item = EvidenceSnapshot(
+        session_id=session.id,
+        event=event,
+        event_type=event_type,
+        label=humanize_event_type(event_type),
+        note=note.strip(),
+        file_name=file_name,
+        file_url=file_url,
+        metadata_json=json.dumps(metadata or {}),
+        created_at=captured_at,
+    )
+    db.add(evidence_item)
+    db.flush()
+    return evidence_item
+
+
+def list_evidence_for_session(db: Session, session_id: str) -> list[EvidenceSnapshot]:
+    return db.execute(
+        select(EvidenceSnapshot)
+        .where(EvidenceSnapshot.session_id == session_id)
+        .order_by(EvidenceSnapshot.created_at.desc())
+    ).scalars().all()
 
 
 def _apply_action_rules(session: ExamSession, *, points: int) -> tuple[str, str]:
@@ -359,7 +413,7 @@ def record_event(
 
     points = points_override if points_override is not None else points_for_event(event_type, payload)
     severity = severity_override or severity_for_event(event_type, points)
-    is_evidence = severity == "high" or points >= 50
+    is_evidence = severity == "high" or points >= 50 or event_type in EVIDENCE_EVENT_TYPES
 
     session.risk_score = max(0, session.risk_score + points)
     session.risk_score_peak = max(session.risk_score_peak, session.risk_score)

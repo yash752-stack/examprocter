@@ -59,10 +59,22 @@ Solution:
 - Heuristic attention scoring
 - Suspicious motion checks
 - Multiple face detection
+- Richer detector taxonomy
+  - `looking_left`
+  - `looking_right`
+  - `looking_down`
+  - `looking_up`
+  - `looking_away_long_duration`
+  - `no_face_long_duration`
 - Phone detection demo trigger
 - Weighted risk scoring
 - Risk decay:
   - score drops by 5 every 5 clean minutes
+- Evidence snapshots for reviewable events
+  - multiple faces
+  - no face
+  - long away duration
+  - phone detection when an image is provided
 
 ### Admin / invigilator flow
 
@@ -78,6 +90,7 @@ Solution:
 - Manual review notes
 - Risk score over time chart
 - Event timeline inspection
+- Evidence gallery with captured proof frames
 - Exam creation
 
 ## Architecture
@@ -200,5 +213,5 @@ Phase 2 upgrades that fit naturally from here:
 - YOLO-based object detection
 - Face verification
 - Audio analysis
-- Review evidence snapshots
+- Reviewer export reports
 - Exportable reports

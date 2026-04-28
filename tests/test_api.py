@@ -8,6 +8,11 @@ from fastapi.testclient import TestClient
 from backend.app.database import Base, engine
 from backend.app.main import app
 
+TINY_PNG_DATA_URI = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlTH0QAAAAASUVORK5CYII="
+)
+
 
 def setup_function():
     Base.metadata.drop_all(bind=engine)
@@ -48,6 +53,13 @@ def test_admin_can_login_and_create_exam():
 
 def test_public_session_flow_uses_exam_rules_and_session_token():
     with TestClient(app) as client:
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "admin@examprocter.dev", "password": "Admin@123"},
+        )
+        assert login.status_code == 200
+        admin_token = login.json()["access_token"]
+
         exams = client.get("/api/v1/public/exams")
         assert exams.status_code == 200
         exam = exams.json()[0]
@@ -69,9 +81,23 @@ def test_public_session_flow_uses_exam_rules_and_session_token():
         event_response = client.post(
             f"/api/v1/public/sessions/{payload['id']}/events",
             headers={"X-Session-Token": payload["session_token"]},
-            json={"event_type": "multiple_faces", "source": "detector", "details": {"face_count": 2}},
+            json={
+                "event_type": "phone_detected",
+                "source": "manual",
+                "details": {"note": "test trigger"},
+                "image_base64": TINY_PNG_DATA_URI,
+            },
         )
         assert event_response.status_code == 200
         event_payload = event_response.json()
         assert event_payload["session"]["risk_score"] >= 50
         assert event_payload["session"]["warning_stage"] in {"soft", "strict", "final"}
+
+        evidence_response = client.get(
+            f"/api/v1/dashboard/sessions/{payload['id']}/evidence",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert evidence_response.status_code == 200
+        evidence_items = evidence_response.json()["items"]
+        assert len(evidence_items) >= 1
+        assert evidence_items[0]["event_type"] == "phone_detected"

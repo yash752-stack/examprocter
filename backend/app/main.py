@@ -13,11 +13,14 @@ from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine, get_db
 from .detectors import analyze_frame
-from .models import Exam, ExamSession, IntegrityEvent, RiskSnapshot, User
+from .evidence import EVIDENCE_DIR
+from .models import EvidenceSnapshot, Exam, ExamSession, IntegrityEvent, RiskSnapshot, User
 from .schemas import (
     AuthLoginRequest,
     AuthLoginResponse,
     DashboardOverview,
+    EvidenceGalleryResponse,
+    EvidenceSnapshotResponse,
     EventActionResponse,
     EventIngest,
     ExamCreate,
@@ -38,11 +41,14 @@ from .services import (
     authenticate_user,
     bootstrap_platform,
     build_overview,
+    create_evidence_snapshot,
     create_exam,
     create_session,
     finalize_session,
     get_user_by_token,
+    humanize_event_type,
     list_exams,
+    list_evidence_for_session,
     list_sessions,
     record_event,
     review_session,
@@ -82,6 +88,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/evidence", StaticFiles(directory=EVIDENCE_DIR), name="evidence")
 
 
 def _exam_response(exam: Exam) -> ExamResponse:
@@ -136,6 +143,20 @@ def _event_response(event: IntegrityEvent) -> IntegrityEventResponse:
         is_evidence=event.is_evidence,
         details=json.loads(event.details_json),
         created_at=event.created_at,
+    )
+
+
+def _evidence_response(item: EvidenceSnapshot) -> EvidenceSnapshotResponse:
+    return EvidenceSnapshotResponse(
+        id=item.id,
+        session_id=item.session_id,
+        event_id=item.event_id,
+        event_type=item.event_type,
+        label=item.label,
+        note=item.note,
+        file_url=item.file_url,
+        metadata=json.loads(item.metadata_json),
+        created_at=item.created_at,
     )
 
 
@@ -226,6 +247,19 @@ def get_public_session(
     return session
 
 
+def _evidence_note(event_type: str, details: dict[str, object]) -> str:
+    pretty_name = humanize_event_type(event_type)
+    if not details:
+        return f"Evidence snapshot for {pretty_name.lower()}."
+    if "face_count" in details:
+        return f"{pretty_name} detected with {details['face_count']} visible face(s)."
+    if "direction" in details:
+        return f"{pretty_name} detected toward {details['direction']}."
+    if "motion_score" in details:
+        return f"{pretty_name} with motion score {details['motion_score']}."
+    return f"Evidence snapshot for {pretty_name.lower()}."
+
+
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/exam")
@@ -312,6 +346,20 @@ def public_ingest_event(
     db.commit()
     db.refresh(session)
     db.refresh(event)
+    if payload.image_base64 and event.is_evidence:
+        create_evidence_snapshot(
+            db,
+            session=session,
+            event=event,
+            event_type=event.event_type,
+            image_base64=payload.image_base64,
+            captured_at=event.created_at,
+            note=_evidence_note(event.event_type, payload.details),
+            metadata=payload.details,
+        )
+        db.commit()
+        db.refresh(session)
+
     return EventActionResponse(
         session=_session_response(session),
         event=_event_response(event),
@@ -334,13 +382,25 @@ def public_ingest_frame(
     last_event = None
     if analysis.suspicious_events:
         for event_type, details in analysis.suspicious_events:
-            last_event = record_event(
+            event = record_event(
                 db,
                 session,
                 event_type=event_type,
                 source="detector",
                 details=details,
             )
+            if event.is_evidence:
+                create_evidence_snapshot(
+                    db,
+                    session=session,
+                    event=event,
+                    event_type=event.event_type,
+                    image_base64=payload.image_base64,
+                    captured_at=event.created_at,
+                    note=_evidence_note(event.event_type, details),
+                    metadata=details,
+                )
+            last_event = event
     else:
         touch_session_activity(db, session, reason="clean_frame")
         session.current_action = "ignore"
@@ -361,6 +421,7 @@ def public_ingest_frame(
             "attention_score": analysis.attention_score,
             "motion_score": analysis.motion_score,
             "center_offset": analysis.center_offset,
+            "attention_direction": analysis.attention_direction,
             "signals": [event_type for event_type, _ in analysis.suspicious_events],
         },
     )
@@ -451,6 +512,20 @@ def dashboard_session_timeline(
     return TimelineResponse(
         session_id=session_id,
         events=[_event_response(event) for event in events],
+    )
+
+
+@app.get("/api/v1/dashboard/sessions/{session_id}/evidence", response_model=EvidenceGalleryResponse)
+def dashboard_session_evidence(
+    session_id: str,
+    _: User = Depends(require_roles("admin", "invigilator")),
+    db: Session = Depends(get_db),
+):
+    _get_session_or_404(db, session_id)
+    items = list_evidence_for_session(db, session_id)
+    return EvidenceGalleryResponse(
+        session_id=session_id,
+        items=[_evidence_response(item) for item in items],
     )
 
 
