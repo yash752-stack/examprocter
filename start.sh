@@ -10,4 +10,5 @@ cleanup() {
 
 trap cleanup EXIT
 
+API_BASE_URL="${API_BASE_URL:-http://localhost:8000}" \
 streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8501

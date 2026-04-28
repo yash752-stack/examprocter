@@ -145,7 +145,7 @@ Default exam access codes:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-backend.txt
 uvicorn backend.app.main:app --reload
 ```
 
@@ -161,6 +161,13 @@ Or:
 ```bash
 chmod +x start.sh
 ./start.sh
+```
+
+If you only want the hosted dashboard experience without a separate backend, install the lighter Streamlit bundle:
+
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
 ```
 
 URLs:
@@ -200,6 +207,7 @@ Examples:
 - Phone detection is a demo hook, not a YOLO pipeline yet
 - SQLite is used for portability; PostgreSQL is the next backend upgrade
 - Real-time dashboard updates are request-refresh based, not WebSockets yet
+- Streamlit Community Cloud runs the reviewer console in embedded demo mode unless `API_BASE_URL` points at a deployed FastAPI backend
 
 These tradeoffs are useful in interviews because they show product prioritization and roadmap thinking.
 

@@ -1,6 +1,30 @@
 # Deployment Notes
 
-## Local demo mode
+## Streamlit Community Cloud
+
+The root `requirements.txt` is intentionally lightweight so Streamlit Community Cloud can boot the reviewer dashboard quickly.
+
+Default hosted behavior:
+
+- If `API_BASE_URL` is blank or unset, the app runs in embedded demo mode.
+- Embedded demo mode uses the same SQLite models and seeds reviewable sessions automatically.
+- This means the dashboard, metrics, review queue, and evidence gallery all work on Streamlit Cloud without a separate backend process.
+
+To connect the dashboard to a live FastAPI deployment later, add:
+
+```text
+API_BASE_URL=https://your-fastapi-host
+```
+
+Once that variable is set, the sidebar switches from embedded demo mode to remote API mode.
+
+## Full local demo mode
+
+Install the full stack:
+
+```bash
+pip install -r requirements-backend.txt
+```
 
 Run the backend:
 
@@ -11,7 +35,7 @@ uvicorn backend.app.main:app --reload
 Run the dashboard:
 
 ```bash
-streamlit run streamlit_app.py
+API_BASE_URL=http://localhost:8000 streamlit run streamlit_app.py
 ```
 
 Use:
@@ -19,20 +43,10 @@ Use:
 - `http://localhost:8000/exam` for the student console
 - `http://localhost:8501` for the operations dashboard
 
-## Streamlit hosting
-
-The Streamlit app is designed as the operations console. It can be hosted independently if the FastAPI backend is deployed elsewhere.
-
-Recommended split:
+Recommended split for the full product:
 
 - Backend: Render, Railway, Fly.io
 - Dashboard: Streamlit Community Cloud
-
-Environment variable for Streamlit:
-
-```text
-API_BASE_URL=https://your-fastapi-host
-```
 
 ## Backend start command
 

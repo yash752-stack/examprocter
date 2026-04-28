@@ -7,7 +7,9 @@ import pandas as pd
 import requests
 import streamlit as st
 
-DEFAULT_API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+from frontend.embedded_backend import initialize_demo_data, request as embedded_request, resolve_asset_path
+
+DEFAULT_API_BASE_URL = os.getenv("API_BASE_URL", "")
 DEMO_ACCOUNTS = [
     ("Admin", "admin@examprocter.dev", "Admin@123"),
     ("Invigilator", "invigilator@examprocter.dev", "Invigilator@123"),
@@ -115,6 +117,16 @@ def _api_request(
     params: dict[str, Any] | None = None,
     auth_required: bool = True,
 ) -> dict[str, Any] | list[dict[str, Any]]:
+    if _using_embedded_mode():
+        return embedded_request(
+            method,
+            path,
+            payload=payload,
+            params=params,
+            current_user=st.session_state.get("current_user"),
+            auth_required=auth_required,
+        )
+
     base_url = st.session_state.api_base_url.rstrip("/")
     headers: dict[str, str] = {}
     token = st.session_state.get("auth_token")
@@ -158,10 +170,16 @@ def _humanize_event_type(event_type: str) -> str:
 
 
 def _asset_url(file_url: str) -> str:
+    if _using_embedded_mode():
+        return resolve_asset_path(file_url)
     base_url = st.session_state.api_base_url.rstrip("/")
     if file_url.startswith("http://") or file_url.startswith("https://"):
         return file_url
     return f"{base_url}{file_url}"
+
+
+def _using_embedded_mode() -> bool:
+    return not st.session_state.get("api_base_url", "").strip()
 
 
 def _logout() -> None:
@@ -204,10 +222,16 @@ def _render_login() -> None:
         st.subheader("Demo accounts")
         for role, email, password in DEMO_ACCOUNTS:
             st.code(f"{role}\n{email}\n{password}")
-        st.write(
-            "This dashboard now reflects a stronger Phase 1 product pass with role-aware access, "
-            "exam setup, reviewer notes, and risk-trend inspection."
-        )
+        if _using_embedded_mode():
+            st.info(
+                "Streamlit deployment mode is active. The app loads local seeded sessions so the "
+                "dashboard works even without a separate FastAPI service."
+            )
+        else:
+            st.write(
+                "Remote API mode is active. This dashboard points at your FastAPI service for "
+                "live review data and evidence inspection."
+            )
 
 
 def _render_session_header(session: dict[str, Any]) -> None:
@@ -257,6 +281,9 @@ def main() -> None:
     st.session_state.setdefault("auth_token", None)
     st.session_state.setdefault("current_user", None)
 
+    if _using_embedded_mode():
+        initialize_demo_data()
+
     if not st.session_state.auth_token or not st.session_state.current_user:
         _render_login()
         return
@@ -268,14 +295,17 @@ def main() -> None:
         st.markdown(
             """
             <div class="hero">
-                <h1>Dashboard waiting for the backend</h1>
-                <p>Run the FastAPI server first, then reload this page. The dashboard can also point
-                to a deployed backend by changing the API Base URL in the sidebar.</p>
+                <h1>Dashboard cannot reach the remote backend</h1>
+                <p>Check the FastAPI deployment URL, then reload this page. You can also clear the
+                API Base URL to fall back to the built-in Streamlit demo mode.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
         st.code("uvicorn backend.app.main:app --reload", language="bash")
+        if st.button("Switch to embedded demo mode", use_container_width=True):
+            st.session_state.api_base_url = ""
+            st.rerun()
         st.info(f"Connection error: {exc}")
         return
 
@@ -292,11 +322,21 @@ def main() -> None:
     with st.sidebar:
         st.title("ExamProcter")
         st.caption("Admin and invigilator operations console")
-        st.text_input("API Base URL", key="api_base_url")
+        st.text_input(
+            "API Base URL",
+            key="api_base_url",
+            placeholder="Leave blank for Streamlit demo mode",
+        )
+        st.caption("Mode: `embedded demo`" if _using_embedded_mode() else "Mode: `remote API`")
         st.write(
             f"Signed in as **{st.session_state.current_user['full_name']}** "
             f"(`{st.session_state.current_user['role']}`)"
         )
+        if _using_embedded_mode():
+            st.info(
+                "This deployment is running entirely inside Streamlit with seeded SQLite data. "
+                "Add a backend URL here later if you want the dashboard to attach to a live API."
+            )
         st.selectbox(
             "Exam filter",
             options=list(exam_options.keys()),
@@ -328,7 +368,8 @@ def main() -> None:
                     st.success(result["message"])
                 except Exception as exc:
                     st.error(f"Could not seed data: {exc}")
-        st.markdown(f"[Open student exam client]({st.session_state.api_base_url.rstrip('/')}/exam)")
+        if not _using_embedded_mode():
+            st.markdown(f"[Open student exam client]({st.session_state.api_base_url.rstrip('/')}/exam)")
         if st.button("Log out", use_container_width=True):
             _logout()
             st.rerun()
@@ -621,6 +662,11 @@ def main() -> None:
 
     with tabs[3]:
         st.subheader("Current architecture")
+        if _using_embedded_mode():
+            st.info(
+                "This hosted build is running in Streamlit-only demo mode. For live student monitoring, "
+                "deploy the FastAPI backend separately and point the API Base URL at it."
+            )
         st.markdown(
             """
             ```text
