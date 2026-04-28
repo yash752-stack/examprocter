@@ -1,49 +1,74 @@
 # Deployment Notes
 
-## Option 1: Interview demo on one machine
+## Local demo mode
 
-Run:
+Run the backend:
 
 ```bash
 uvicorn backend.app.main:app --reload
+```
+
+Run the dashboard:
+
+```bash
 streamlit run streamlit_app.py
 ```
 
 Use:
 
-- `http://localhost:8000/exam` for the student experience
-- `http://localhost:8501` for the admin dashboard
+- `http://localhost:8000/exam` for the student console
+- `http://localhost:8501` for the operations dashboard
 
-## Option 2: Streamlit-hosted dashboard
+## Streamlit hosting
 
-Use Streamlit Community Cloud for the dashboard only.
+The Streamlit app is designed as the operations console. It can be hosted independently if the FastAPI backend is deployed elsewhere.
 
-1. Push this repository to GitHub.
-2. Create a new Streamlit app using `streamlit_app.py`.
-3. Set `API_BASE_URL` to the backend you deploy elsewhere.
-4. Make sure the backend allows CORS.
+Recommended split:
 
-## Backend host suggestions
+- Backend: Render, Railway, Fly.io
+- Dashboard: Streamlit Community Cloud
 
-- Render
-- Railway
-- Fly.io
+Environment variable for Streamlit:
 
-Start command:
+```text
+API_BASE_URL=https://your-fastapi-host
+```
+
+## Backend start command
 
 ```bash
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Environment variables
+## Product deployment note
 
-```text
-API_BASE_URL=https://your-fastapi-host
-EXAMPROCTER_DB_URL=sqlite:///data/examprocter.db
-```
+This project now has two traffic types:
 
-## Talking point
+- Public student routes under `/api/v1/public`
+- Protected dashboard routes under `/api/v1/dashboard`
 
-If asked why Streamlit is split from the backend, the answer is simple:
+That split makes it easier to evolve toward:
 
-> The browser exam client needs direct JavaScript hooks for tab visibility, blur events, and webcam capture. Streamlit is excellent for the admin dashboard, but the monitoring client is more reliable as a dedicated browser page backed by FastAPI.
+- JWT auth
+- API gateways
+- rate limiting
+- background workers
+- WebSocket push
+
+## Demo credentials
+
+Dashboard login:
+
+- `admin@examprocter.dev` / `Admin@123`
+- `invigilator@examprocter.dev` / `Invigilator@123`
+
+Default exam access codes:
+
+- `CAMPUS2026`
+- `ANALYST2026`
+
+## Architecture talking point
+
+If someone asks why the student client is not built in Streamlit:
+
+> The student experience needs browser-native hooks for visibility changes, blur events, fullscreen changes, and webcam capture. Streamlit is ideal for the reviewer console, while a dedicated browser client backed by FastAPI is the safer choice for monitoring behavior in real time.

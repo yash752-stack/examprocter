@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ExamProcter Candidate Exam</title>
+  <title>ExamProcter Candidate Console</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -12,15 +12,11 @@
       --text: #f8fafc;
       --muted: #cbd5e1;
       --accent: #fb923c;
-      --success: #22c55e;
-      --warning: #f97316;
       --danger: #ef4444;
       --line: rgba(255, 255, 255, 0.12);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -82,14 +78,13 @@
     }
 
     .form-grid,
-    .meta-grid,
-    .question-grid {
+    .meta-grid {
       display: grid;
       gap: 14px;
     }
 
     .form-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       margin-bottom: 18px;
     }
 
@@ -98,14 +93,9 @@
       margin-top: 14px;
     }
 
-    .question-grid {
-      grid-template-columns: 1fr;
-      margin-top: 18px;
-    }
-
     .field label,
-    .question-card h3,
-    .monitor-card h3 {
+    .monitor-card h3,
+    .question-card h3 {
       display: block;
       margin-bottom: 8px;
       font-size: 0.9rem;
@@ -113,8 +103,8 @@
     }
 
     .field input,
-    .question-card textarea,
-    .question-card select {
+    .field select,
+    .question-card textarea {
       width: 100%;
       padding: 12px 14px;
       border-radius: 14px;
@@ -125,8 +115,8 @@
     }
 
     .field input:focus,
-    .question-card textarea:focus,
-    .question-card select:focus {
+    .field select:focus,
+    .question-card textarea:focus {
       border-color: rgba(251, 146, 60, 0.65);
       box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.16);
     }
@@ -144,12 +134,10 @@
       padding: 12px 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.15s ease;
     }
 
-    button:hover {
-      transform: translateY(-1px);
-    }
+    button:hover { transform: translateY(-1px); }
 
     .primary {
       background: linear-gradient(135deg, #fb923c, #ea580c);
@@ -168,7 +156,9 @@
       border: 1px solid rgba(239, 68, 68, 0.35);
     }
 
-    .metric {
+    .metric,
+    .monitor-card,
+    .question-card {
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 14px;
@@ -184,26 +174,26 @@
     .metric strong {
       display: block;
       margin-top: 6px;
-      font-size: 1.4rem;
+      font-size: 1.35rem;
     }
 
-    .question-card,
-    .monitor-card {
+    .rule-pills,
+    .signals {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .question-card p,
-    .monitor-card p,
-    .helper {
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .monitor-card {
-      margin-bottom: 14px;
+      font-size: 0.88rem;
     }
 
     .risk-meter {
@@ -222,19 +212,6 @@
       transition: width 0.25s ease;
     }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--line);
-      margin-right: 8px;
-      margin-top: 8px;
-      font-size: 0.88rem;
-    }
-
     .timeline {
       list-style: none;
       padding: 0;
@@ -242,7 +219,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 290px;
+      max-height: 320px;
       overflow: auto;
     }
 
@@ -276,8 +253,18 @@
       background: rgba(2, 6, 23, 0.75);
     }
 
-    canvas {
-      display: none;
+    canvas { display: none; }
+
+    .question-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .question-card p,
+    .monitor-card p {
+      color: var(--muted);
+      line-height: 1.5;
     }
 
     .status-line {
@@ -286,14 +273,9 @@
     }
 
     @media (max-width: 1024px) {
-      .shell {
-        grid-template-columns: 1fr;
-      }
-
+      .shell { grid-template-columns: 1fr; }
       .form-grid,
-      .meta-grid {
-        grid-template-columns: 1fr;
-      }
+      .meta-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -304,11 +286,11 @@
         <div>
           <h1>ExamProcter Candidate Console</h1>
           <p>
-            AI-backed exam monitoring with live browser activity checks, webcam frame analysis,
-            and a risk score that escalates from silent monitoring to admin review.
+            Start an exam with an access code, follow the configured rules, and let the
+            system score suspicious behavior using browser activity plus webcam analysis.
           </p>
         </div>
-        <div class="tag">Demo-ready MVP</div>
+        <div class="tag">Phase 1 product pass</div>
       </div>
 
       <div class="form-grid">
@@ -317,12 +299,16 @@
           <input id="studentName" type="text" placeholder="Enter full name">
         </div>
         <div class="field">
-          <label for="examName">Exam name</label>
-          <input id="examName" type="text" placeholder="Example: Analyst screening">
+          <label for="studentEmail">Student email</label>
+          <input id="studentEmail" type="email" placeholder="Enter email">
         </div>
         <div class="field">
-          <label for="minutes">Exam duration (minutes)</label>
-          <input id="minutes" type="number" value="45" min="1">
+          <label for="examSelect">Exam</label>
+          <select id="examSelect"></select>
+        </div>
+        <div class="field">
+          <label for="accessCode">Exam access code</label>
+          <input id="accessCode" type="text" placeholder="Example: CAMPUS2026">
         </div>
       </div>
 
@@ -348,8 +334,8 @@
           <strong id="riskScore">0</strong>
         </div>
         <div class="metric">
-          <span>Risk level</span>
-          <strong id="riskLevel">LOW</strong>
+          <span>Warning stage</span>
+          <strong id="warningStage">NONE</strong>
         </div>
       </div>
 
@@ -357,26 +343,18 @@
         <div class="risk-fill" id="riskFill"></div>
       </div>
 
+      <div class="rule-pills" id="rulePills"></div>
+
       <div class="question-grid">
         <div class="question-card">
           <h3>Question 1</h3>
-          <p>Why is event-based risk scoring better than a single cheating flag in remote exams?</p>
+          <p>Why does a risk-scoring system create a better exam experience than a binary cheating detector?</p>
           <textarea rows="4" placeholder="Write your short answer here"></textarea>
         </div>
         <div class="question-card">
           <h3>Question 2</h3>
-          <p>Select the strongest signal for immediate admin review.</p>
-          <select>
-            <option>Looking away once</option>
-            <option>Copy event</option>
-            <option>Multiple faces detected</option>
-            <option>Short window blur</option>
-          </select>
-        </div>
-        <div class="question-card">
-          <h3>Question 3</h3>
-          <p>What metric best helps validate whether the system annoys genuine students?</p>
-          <textarea rows="3" placeholder="Hint: think about reviewer feedback and false positives"></textarea>
+          <p>What reviewer feedback metric helps prove the system is not too strict on genuine students?</p>
+          <textarea rows="3" placeholder="Hint: think about false positives"></textarea>
         </div>
       </div>
     </section>
@@ -384,7 +362,7 @@
     <aside class="panel">
       <div class="monitor-card">
         <h3>Live webcam integrity feed</h3>
-        <p>The app samples frames every 4 seconds. Suspicious signals like multiple faces, missing face, off-center face, and abrupt motion update the risk score automatically.</p>
+        <p>The client samples a frame every 4 seconds and sends it to the FastAPI backend for lightweight face, motion, and attention checks.</p>
         <video id="videoPreview" autoplay muted playsinline></video>
         <canvas id="captureCanvas"></canvas>
         <div class="status-line" id="cameraStatus">Camera idle. Start the exam to begin monitoring.</div>
@@ -392,13 +370,13 @@
 
       <div class="monitor-card">
         <h3>Real-time indicators</h3>
-        <div class="pill">Face count: <span id="faceCount">0</span></div>
-        <div class="pill">Attention score: <span id="attentionScore">0.00</span></div>
-        <div class="pill">Motion score: <span id="motionScore">0.00</span></div>
-        <p class="helper">
-          Browser hooks record tab switches, window blur, copy, paste, and context menu usage in real time.
-          These are scored by the backend instead of triggering rigid pass/fail blocks.
-        </p>
+        <div class="signals">
+          <div class="pill">Risk level: <span id="riskLevel">LOW</span></div>
+          <div class="pill">Current action: <span id="currentAction">ignore</span></div>
+          <div class="pill">Face count: <span id="faceCount">0</span></div>
+          <div class="pill">Attention score: <span id="attentionScore">0.00</span></div>
+          <div class="pill">Motion score: <span id="motionScore">0.00</span></div>
+        </div>
       </div>
 
       <div class="monitor-card">
@@ -409,24 +387,34 @@
   </div>
 
   <script>
-    const videoPreview = document.getElementById("videoPreview");
-    const captureCanvas = document.getElementById("captureCanvas");
+    const examSelect = document.getElementById("examSelect");
+    const studentNameInput = document.getElementById("studentName");
+    const studentEmailInput = document.getElementById("studentEmail");
+    const accessCodeInput = document.getElementById("accessCode");
     const startButton = document.getElementById("startButton");
     const endButton = document.getElementById("endButton");
     const phoneButton = document.getElementById("phoneButton");
     const alertBox = document.getElementById("alertBox");
-    const riskScore = document.getElementById("riskScore");
-    const riskLevel = document.getElementById("riskLevel");
-    const riskFill = document.getElementById("riskFill");
     const sessionIdLabel = document.getElementById("sessionId");
     const timerValue = document.getElementById("timerValue");
+    const riskScore = document.getElementById("riskScore");
+    const warningStage = document.getElementById("warningStage");
+    const riskFill = document.getElementById("riskFill");
+    const riskLevel = document.getElementById("riskLevel");
+    const currentAction = document.getElementById("currentAction");
     const faceCountLabel = document.getElementById("faceCount");
     const attentionScoreLabel = document.getElementById("attentionScore");
     const motionScoreLabel = document.getElementById("motionScore");
+    const rulePills = document.getElementById("rulePills");
+    const videoPreview = document.getElementById("videoPreview");
+    const captureCanvas = document.getElementById("captureCanvas");
     const eventTimeline = document.getElementById("eventTimeline");
     const cameraStatus = document.getElementById("cameraStatus");
 
+    let exams = [];
     let activeSessionId = null;
+    let sessionToken = null;
+    let activeExam = null;
     let mediaStream = null;
     let captureInterval = null;
     let timerInterval = null;
@@ -434,19 +422,46 @@
     let visibilityStart = null;
     let listenersBound = false;
 
-    async function api(path, method = "GET", payload = null) {
+    async function api(path, method = "GET", payload = null, extraHeaders = {}) {
       const response = await fetch(path, {
         method,
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...extraHeaders
         },
         body: payload ? JSON.stringify(payload) : null
       });
       if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || "API request failed");
+        let detail = "API request failed";
+        try {
+          const body = await response.json();
+          detail = body.detail || detail;
+        } catch (_) {}
+        throw new Error(detail);
       }
       return response.json();
+    }
+
+    function showAlert(message, isDanger = false) {
+      alertBox.style.display = "block";
+      alertBox.textContent = message;
+      alertBox.style.borderColor = isDanger ? "rgba(239, 68, 68, 0.35)" : "rgba(251, 146, 60, 0.28)";
+      alertBox.style.background = isDanger ? "rgba(239, 68, 68, 0.14)" : "rgba(249, 115, 22, 0.14)";
+    }
+
+    function clearAlert() {
+      alertBox.style.display = "none";
+      alertBox.textContent = "";
+    }
+
+    function logEvent(title, details) {
+      const item = document.createElement("li");
+      const timestamp = new Date().toLocaleTimeString();
+      item.innerHTML = `<strong>${title}</strong><div>${details}</div><small>${timestamp}</small>`;
+      eventTimeline.prepend(item);
+      if (eventTimeline.children.length > 12) {
+        eventTimeline.removeChild(eventTimeline.lastChild);
+      }
     }
 
     function formatTimer() {
@@ -460,31 +475,29 @@
       timerValue.textContent = `${minutes}:${seconds}`;
     }
 
-    function logEvent(title, details) {
-      const item = document.createElement("li");
-      const timestamp = new Date().toLocaleTimeString();
-      item.innerHTML = `<strong>${title}</strong><div>${details}</div><small>${timestamp}</small>`;
-      eventTimeline.prepend(item);
-      if (eventTimeline.children.length > 10) {
-        eventTimeline.removeChild(eventTimeline.lastChild);
+    function renderExamRules(exam) {
+      if (!exam) {
+        rulePills.innerHTML = "";
+        return;
       }
-    }
-
-    function showAlert(message, level) {
-      alertBox.style.display = "block";
-      alertBox.textContent = message;
-      alertBox.style.borderColor = level === "high" ? "rgba(239, 68, 68, 0.35)" : "rgba(251, 146, 60, 0.28)";
-      alertBox.style.background = level === "high" ? "rgba(239, 68, 68, 0.14)" : "rgba(249, 115, 22, 0.14)";
-    }
-
-    function clearAlert() {
-      alertBox.style.display = "none";
-      alertBox.textContent = "";
+      const pills = [
+        `Duration: ${exam.duration_minutes} min`,
+        `Warnings: ${exam.warning_limit}`,
+        `Fullscreen: ${exam.fullscreen_required ? "Required" : "Optional"}`,
+        `Copy/paste: ${exam.allow_copy_paste ? "Allowed" : "Blocked"}`,
+        `Auto terminate: ${exam.auto_terminate_on_limit ? "Enabled" : "Off"}`
+      ];
+      if (exam.allowed_tabs && exam.allowed_tabs.length) {
+        pills.push(`Allowed tabs: ${exam.allowed_tabs.join(", ")}`);
+      }
+      rulePills.innerHTML = pills.map((pill) => `<div class="pill">${pill}</div>`).join("");
     }
 
     function updateRiskState(session) {
       riskScore.textContent = session.risk_score;
+      warningStage.textContent = session.warning_stage.toUpperCase();
       riskLevel.textContent = session.risk_level.toUpperCase();
+      currentAction.textContent = session.current_action;
       riskFill.style.width = `${Math.min(session.risk_score, 100)}%`;
     }
 
@@ -500,24 +513,42 @@
       }
     }
 
+    async function loadExams() {
+      exams = await api("/api/v1/public/exams");
+      examSelect.innerHTML = exams
+        .map((exam) => `<option value="${exam.id}">${exam.title}</option>`)
+        .join("");
+      activeExam = exams[0] || null;
+      renderExamRules(activeExam);
+    }
+
+    function selectedExam() {
+      return exams.find((exam) => exam.id === examSelect.value) || null;
+    }
+
+    function sessionHeaders() {
+      return sessionToken ? { "X-Session-Token": sessionToken } : {};
+    }
+
     async function sendEvent(eventType, details = {}, source = "browser") {
       if (!activeSessionId) {
         return;
       }
-      const payload = {
-        event_type: eventType,
-        source,
-        details
-      };
-      const response = await api(`/api/sessions/${activeSessionId}/events`, "POST", payload);
+      const response = await api(
+        `/api/v1/public/sessions/${activeSessionId}/events`,
+        "POST",
+        { event_type: eventType, source, details },
+        sessionHeaders()
+      );
       updateRiskState(response.session);
       if (response.event) {
         logEvent(response.event.event_type, `${response.event.points} points from ${response.event.source}`);
       }
-      if (response.action !== "ignore") {
-        showAlert(response.alert, response.session.risk_level);
-      } else {
-        clearAlert();
+      if (response.alert) {
+        showAlert(response.alert, response.action === "terminate_session");
+      }
+      if (response.action === "terminate_session" || response.session.status === "terminated") {
+        await shutdownExam(true);
       }
     }
 
@@ -525,31 +556,32 @@
       if (!activeSessionId || !mediaStream || !videoPreview.videoWidth) {
         return;
       }
-
       const context = captureCanvas.getContext("2d");
       captureCanvas.width = videoPreview.videoWidth;
       captureCanvas.height = videoPreview.videoHeight;
       context.drawImage(videoPreview, 0, 0, captureCanvas.width, captureCanvas.height);
       const imageBase64 = captureCanvas.toDataURL("image/jpeg", 0.76);
-
-      const response = await api(`/api/sessions/${activeSessionId}/frames`, "POST", {
-        image_base64: imageBase64
-      });
+      const response = await api(
+        `/api/v1/public/sessions/${activeSessionId}/frames`,
+        "POST",
+        { image_base64: imageBase64 },
+        sessionHeaders()
+      );
       updateRiskState(response.session);
       updateDetectorMetrics(response.analysis);
-      if (response.action !== "ignore") {
-        showAlert(response.alert, response.session.risk_level);
+      if (response.alert) {
+        showAlert(response.alert, response.action === "terminate_session");
       } else {
         clearAlert();
+      }
+      if (response.action === "terminate_session" || response.session.status === "terminated") {
+        await shutdownExam(true);
       }
     }
 
     async function startCamera() {
       mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        },
+        video: { width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false
       });
       videoPreview.srcObject = mediaStream;
@@ -565,6 +597,19 @@
       cameraStatus.textContent = "Camera stopped.";
     }
 
+    async function requestFullscreenIfNeeded() {
+      if (!activeExam || !activeExam.fullscreen_required) {
+        return;
+      }
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (_) {
+        logEvent("Rule reminder", "Fullscreen request was declined by the browser.");
+      }
+    }
+
     function bindActivityListeners() {
       if (listenersBound) {
         return;
@@ -574,7 +619,6 @@
         if (!activeSessionId) {
           return;
         }
-
         if (document.hidden) {
           visibilityStart = Date.now();
         } else if (visibilityStart) {
@@ -590,77 +634,124 @@
         }
       });
 
-      document.addEventListener("copy", async () => {
-        await sendEvent("copy", { note: "copy detected" });
+      document.addEventListener("copy", async (event) => {
+        if (activeExam && !activeExam.allow_copy_paste) {
+          event.preventDefault();
+        }
+        await sendEvent("copy", { blocked: activeExam ? !activeExam.allow_copy_paste : false });
       });
 
-      document.addEventListener("paste", async () => {
-        await sendEvent("paste", { note: "paste detected" });
+      document.addEventListener("paste", async (event) => {
+        if (activeExam && !activeExam.allow_copy_paste) {
+          event.preventDefault();
+        }
+        await sendEvent("paste", { blocked: activeExam ? !activeExam.allow_copy_paste : false });
       });
 
       document.addEventListener("contextmenu", async () => {
         await sendEvent("context_menu", { note: "context menu opened" });
       });
 
+      document.addEventListener("fullscreenchange", async () => {
+        if (activeSessionId && activeExam && activeExam.fullscreen_required && !document.fullscreenElement) {
+          await sendEvent("window_blur", { note: "fullscreen exited during protected exam" });
+        }
+      });
+
       listenersBound = true;
     }
 
     async function startExam() {
-      const studentName = document.getElementById("studentName").value.trim();
-      const examName = document.getElementById("examName").value.trim();
+      const studentName = studentNameInput.value.trim();
+      const studentEmail = studentEmailInput.value.trim();
+      activeExam = selectedExam();
+      const accessCode = accessCodeInput.value.trim().toUpperCase();
 
-      if (!studentName || !examName) {
-        showAlert("Enter both student name and exam name before starting.", "medium");
+      if (!studentName || !studentEmail || !activeExam || !accessCode) {
+        showAlert("Enter student details, choose an exam, and provide the access code.");
         return;
       }
 
-      clearAlert();
-      const session = await api("/api/sessions", "POST", {
+      const session = await api("/api/v1/public/sessions", "POST", {
         student_name: studentName,
-        exam_name: examName
+        student_email: studentEmail,
+        exam_id: activeExam.id,
+        access_code: accessCode
       });
+
       activeSessionId = session.id;
+      sessionToken = session.session_token;
       sessionIdLabel.textContent = session.id;
       updateRiskState(session);
+      renderExamRules(session.exam_rules);
+      activeExam = session.exam_rules;
       startTimestamp = Date.now();
       formatTimer();
       timerInterval = setInterval(formatTimer, 1000);
-
+      await requestFullscreenIfNeeded();
       await startCamera();
       bindActivityListeners();
-      captureInterval = setInterval(captureFrame, 4000);
-      logEvent("Session started", `${studentName} entered ${examName}`);
+      captureInterval = setInterval(() => {
+        captureFrame().catch((error) => showAlert(error.message, true));
+      }, 4000);
+      clearAlert();
+      logEvent("Session started", `${studentName} entered ${session.exam_name}`);
+    }
+
+    async function shutdownExam(triggeredAutomatically = false) {
+      stopCamera();
+      clearInterval(captureInterval);
+      clearInterval(timerInterval);
+      captureInterval = null;
+      timerInterval = null;
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch (_) {}
+      }
+      if (triggeredAutomatically) {
+        logEvent("Exam ended", "The session was ended automatically by the integrity engine.");
+      }
+      activeSessionId = null;
+      sessionToken = null;
+      startTimestamp = null;
     }
 
     async function endExam() {
       if (!activeSessionId) {
         return;
       }
-      const session = await api(`/api/sessions/${activeSessionId}/end`, "POST");
-      logEvent("Session ended", session.summary);
-      showAlert(session.summary, session.risk_level);
+      const session = await api(
+        `/api/v1/public/sessions/${activeSessionId}/end`,
+        "POST",
+        null,
+        sessionHeaders()
+      );
       updateRiskState(session);
-      stopCamera();
-      clearInterval(captureInterval);
-      clearInterval(timerInterval);
-      captureInterval = null;
-      timerInterval = null;
-      activeSessionId = null;
-      startTimestamp = null;
+      showAlert(session.summary, session.status === "terminated");
+      logEvent("Session ended", session.summary);
+      await shutdownExam(false);
     }
 
+    examSelect.addEventListener("change", () => {
+      activeExam = selectedExam();
+      renderExamRules(activeExam);
+    });
+
     startButton.addEventListener("click", () => {
-      startExam().catch((error) => showAlert(error.message, "high"));
+      startExam().catch((error) => showAlert(error.message, true));
     });
 
     endButton.addEventListener("click", () => {
-      endExam().catch((error) => showAlert(error.message, "high"));
+      endExam().catch((error) => showAlert(error.message, true));
     });
 
     phoneButton.addEventListener("click", () => {
-      sendEvent("phone_detected", { note: "Demo control for object-detection hook" }, "manual")
-        .catch((error) => showAlert(error.message, "high"));
+      sendEvent("phone_detected", { note: "Demo control for future YOLO hook" }, "manual")
+        .catch((error) => showAlert(error.message, true));
     });
+
+    loadExams().catch((error) => showAlert(error.message, true));
   </script>
 </body>
 </html>
