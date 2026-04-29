@@ -3,6 +3,7 @@
 ExamProcter is an AI-powered remote exam integrity and risk scoring platform built as an interview-ready product demo.
 
 [![Repo](https://img.shields.io/badge/GitHub-ExamProcter-181717?logo=github&logoColor=white)](https://github.com/yash752-stack/examprocter)
+[![Temporary Live Demo](https://img.shields.io/badge/Temporary_Live_Demo-Online-success)](https://b93903849c5d6a.lhr.life)
 
 One-line pitch:
 
@@ -10,11 +11,15 @@ One-line pitch:
 
 ## Demo status
 
-- Public hosted demo: not currently available
+- Temporary public demo: [https://b93903849c5d6a.lhr.life](https://b93903849c5d6a.lhr.life)
 - Local reviewer dashboard: available with the setup steps below
 - Full student monitoring flow works best when the FastAPI backend is run locally or deployed separately and connected with `API_BASE_URL`
 
-If you publish a public Streamlit or full-stack deployment later, add that URL here after verifying it is accessible without account restrictions.
+Important:
+
+- This public demo URL is temporary and tunnel-backed.
+- It only stays live while the local Streamlit process and tunnel session remain running.
+- If you later publish a permanent deployment, replace this link with the stable hosted URL.
 
 Demo dashboard credentials:
 
